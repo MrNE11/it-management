@@ -142,3 +142,29 @@ create policy "authenticated read/write - websites"        on websites        fo
 create policy "authenticated read/write - backup_jobs"     on backup_jobs     for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 create policy "authenticated read/write - security_events" on security_events for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 create policy "authenticated read/write - credentials"     on credentials     for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+
+-- ============================================================
+-- Sign-up restricted to the company email domain. Self-service
+-- sign-up is enabled in Supabase Auth, so this trigger is the real
+-- security boundary (the client-side check in js/auth.js is just
+-- a friendlier first error message — it can be bypassed by calling
+-- the Auth API directly, this trigger cannot).
+-- ============================================================
+
+create or replace function public.enforce_email_domain()
+returns trigger
+language plpgsql
+security definer
+as $$
+begin
+  if new.email !~* '^[a-z0-9._%+-]+@edupark\.co\.th$' then
+    raise exception 'Sign-up restricted to @edupark.co.th email addresses';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists enforce_email_domain_trigger on auth.users;
+create trigger enforce_email_domain_trigger
+before insert on auth.users
+for each row execute function public.enforce_email_domain();
