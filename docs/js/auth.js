@@ -60,14 +60,21 @@ signOutBtn.addEventListener("click", async () => {
   showLogin();
 });
 
-(async function initAuth() {
-  const { data } = await supabaseClient.auth.getSession();
-  if (data.session) {
-    showApp(data.session);
-  } else {
-    showLogin();
-  }
-})();
+// Deferred to DOMContentLoaded: if a session is already cached, getSession()
+// can resolve before app.js (the next <script> tag) has finished executing,
+// so window.initDashboard wouldn't exist yet when showApp() checks for it.
+// Waiting for DOMContentLoaded guarantees every synchronous script — app.js
+// included — has already run.
+window.addEventListener("DOMContentLoaded", () => {
+  (async function initAuth() {
+    const { data } = await supabaseClient.auth.getSession();
+    if (data.session) {
+      showApp(data.session);
+    } else {
+      showLogin();
+    }
+  })();
+});
 
 supabaseClient.auth.onAuthStateChange((event, session) => {
   if (event === "SIGNED_OUT") showLogin();
