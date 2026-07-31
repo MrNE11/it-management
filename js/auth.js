@@ -1,46 +1,30 @@
-// ===== Auth gate: Supabase email/password sign-in + sign-up =====
-// Sign-up is open to any email — anyone who signs up can see all IT
-// data (tickets, assets, websites, etc.) once logged in, since RLS
-// only checks "authenticated", not who the user is.
+// ===== Auth gate: username/password sign-in =====
+// Supabase Auth is email-based, so each username is mapped to a synthetic
+// email "{username}@internal.local" behind the scenes — the 4 accounts
+// (non, tle, tc, aor) were created directly via the Auth API, not through
+// self sign-up (which has been removed; this is now a fixed set of named
+// accounts, not open registration).
+
+const USERNAME_DOMAIN = "internal.local";
 
 const authGate = document.getElementById("authGate");
 const appRoot = document.getElementById("appRoot");
 const loginForm = document.getElementById("loginForm");
 const authError = document.getElementById("authError");
-const authSuccess = document.getElementById("authSuccess");
-const authSubtitle = document.getElementById("authSubtitle");
 const loginSubmit = document.getElementById("loginSubmit");
-const authModeToggle = document.getElementById("authModeToggle");
 const signOutBtn = document.getElementById("signOutBtn");
 
-let authMode = "signin"; // "signin" | "signup"
-
-function setAuthMode(mode) {
-  authMode = mode;
-  authError.style.display = "none";
-  authSuccess.style.display = "none";
-  if (mode === "signup") {
-    authSubtitle.textContent = "สร้างบัญชีใหม่ด้วยอีเมลและรหัสผ่าน";
-    loginSubmit.textContent = "สมัครสมาชิก";
-    authModeToggle.textContent = "มีบัญชีอยู่แล้ว? เข้าสู่ระบบ";
-  } else {
-    authSubtitle.textContent = "เข้าสู่ระบบด้วยบัญชีที่ได้รับอนุญาต";
-    loginSubmit.textContent = "เข้าสู่ระบบ";
-    authModeToggle.textContent = "ยังไม่มีบัญชี? สมัครสมาชิก";
-  }
+function usernameFromEmail(email) {
+  return (email || "").split("@")[0] || "ผู้ใช้งาน";
 }
-
-authModeToggle.addEventListener("click", () => {
-  setAuthMode(authMode === "signin" ? "signup" : "signin");
-});
 
 function showApp(session) {
   authGate.style.display = "none";
   appRoot.style.display = "";
-  const email = session?.user?.email || "";
-  document.getElementById("userEmail").textContent = email;
-  document.getElementById("userName").textContent = email.split("@")[0] || "ผู้ใช้งาน";
-  document.getElementById("userAvatar").textContent = (email[0] || "U").toUpperCase();
+  const username = usernameFromEmail(session?.user?.email);
+  document.getElementById("userEmail").textContent = username;
+  document.getElementById("userName").textContent = username;
+  document.getElementById("userAvatar").textContent = username[0].toUpperCase();
   if (window.initDashboard) window.initDashboard();
 }
 
@@ -52,33 +36,10 @@ function showLogin() {
 loginForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   authError.style.display = "none";
-  authSuccess.style.display = "none";
 
-  const email = document.getElementById("loginEmail").value.trim();
+  const username = document.getElementById("loginEmail").value.trim().toLowerCase();
   const password = document.getElementById("loginPassword").value;
-
-  if (authMode === "signup") {
-    loginSubmit.disabled = true;
-    loginSubmit.textContent = "กำลังสมัครสมาชิก...";
-    const { data, error } = await supabaseClient.auth.signUp({ email, password });
-    loginSubmit.disabled = false;
-    loginSubmit.textContent = "สมัครสมาชิก";
-
-    if (error) {
-      authError.textContent = "สมัครสมาชิกไม่สำเร็จ: " + error.message;
-      authError.style.display = "block";
-      return;
-    }
-
-    if (data.session) {
-      showApp(data.session);
-    } else {
-      authSuccess.textContent = "สมัครสมาชิกสำเร็จ กรุณายืนยันอีเมลของคุณก่อนเข้าสู่ระบบ";
-      authSuccess.style.display = "block";
-      setAuthMode("signin");
-    }
-    return;
-  }
+  const email = `${username}@${USERNAME_DOMAIN}`;
 
   loginSubmit.disabled = true;
   loginSubmit.textContent = "กำลังเข้าสู่ระบบ...";
@@ -87,7 +48,7 @@ loginForm.addEventListener("submit", async (e) => {
   loginSubmit.textContent = "เข้าสู่ระบบ";
 
   if (error) {
-    authError.textContent = "เข้าสู่ระบบไม่สำเร็จ: อีเมลหรือรหัสผ่านไม่ถูกต้อง";
+    authError.textContent = "เข้าสู่ระบบไม่สำเร็จ: ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง";
     authError.style.display = "block";
     return;
   }

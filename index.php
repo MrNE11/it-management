@@ -8,15 +8,15 @@
 </head>
 <body>
 
-<!-- ============ LOGIN / SIGN-UP GATE ============ -->
+<!-- ============ LOGIN GATE ============ -->
 <div class="auth-gate" id="authGate">
   <form class="auth-card" id="loginForm">
     <div class="brand-mark" style="width:44px;height:44px;font-size:17px;margin:0 auto 14px;">IT</div>
     <h1>IT Support Hub</h1>
     <p id="authSubtitle">เข้าสู่ระบบด้วยบัญชีที่ได้รับอนุญาต</p>
     <div class="auth-field">
-      <label for="loginEmail">อีเมล</label>
-      <input type="email" id="loginEmail" autocomplete="username" placeholder="name@example.com" required />
+      <label for="loginEmail">ชื่อผู้ใช้งาน</label>
+      <input type="text" id="loginEmail" autocomplete="username" placeholder="username" autocapitalize="off" required />
     </div>
     <div class="auth-field">
       <label for="loginPassword">รหัสผ่าน</label>
@@ -25,7 +25,6 @@
     <div class="auth-error" id="authError" style="display:none;"></div>
     <div class="auth-success" id="authSuccess" style="display:none;"></div>
     <button type="submit" class="btn btn-primary" id="loginSubmit" style="width:100%;justify-content:center;">เข้าสู่ระบบ</button>
-    <button type="button" class="btn btn-ghost" id="authModeToggle" style="width:100%;justify-content:center;margin-top:8px;">ยังไม่มีบัญชี? สมัครสมาชิก</button>
   </form>
 </div>
 
