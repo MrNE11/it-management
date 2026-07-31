@@ -1,6 +1,7 @@
 // ===== Auth gate: Supabase email/password sign-in + sign-up =====
-
-const ALLOWED_EMAIL_DOMAIN = "edupark.co.th";
+// Sign-up is open to any email — anyone who signs up can see all IT
+// data (tickets, assets, websites, etc.) once logged in, since RLS
+// only checks "authenticated", not who the user is.
 
 const authGate = document.getElementById("authGate");
 const appRoot = document.getElementById("appRoot");
@@ -19,7 +20,7 @@ function setAuthMode(mode) {
   authError.style.display = "none";
   authSuccess.style.display = "none";
   if (mode === "signup") {
-    authSubtitle.textContent = `สมัครสมาชิกด้วยอีเมลบริษัท (@${ALLOWED_EMAIL_DOMAIN})`;
+    authSubtitle.textContent = "สร้างบัญชีใหม่ด้วยอีเมลและรหัสผ่าน";
     loginSubmit.textContent = "สมัครสมาชิก";
     authModeToggle.textContent = "มีบัญชีอยู่แล้ว? เข้าสู่ระบบ";
   } else {
@@ -57,12 +58,6 @@ loginForm.addEventListener("submit", async (e) => {
   const password = document.getElementById("loginPassword").value;
 
   if (authMode === "signup") {
-    if (!email.toLowerCase().endsWith("@" + ALLOWED_EMAIL_DOMAIN)) {
-      authError.textContent = `สมัครสมาชิกได้เฉพาะอีเมล @${ALLOWED_EMAIL_DOMAIN} เท่านั้น`;
-      authError.style.display = "block";
-      return;
-    }
-
     loginSubmit.disabled = true;
     loginSubmit.textContent = "กำลังสมัครสมาชิก...";
     const { data, error } = await supabaseClient.auth.signUp({ email, password });
@@ -70,9 +65,7 @@ loginForm.addEventListener("submit", async (e) => {
     loginSubmit.textContent = "สมัครสมาชิก";
 
     if (error) {
-      authError.textContent = error.message.includes("restricted")
-        ? `สมัครสมาชิกได้เฉพาะอีเมล @${ALLOWED_EMAIL_DOMAIN} เท่านั้น`
-        : "สมัครสมาชิกไม่สำเร็จ: " + error.message;
+      authError.textContent = "สมัครสมาชิกไม่สำเร็จ: " + error.message;
       authError.style.display = "block";
       return;
     }

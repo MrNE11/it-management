@@ -16,7 +16,7 @@
     <p id="authSubtitle">เข้าสู่ระบบด้วยบัญชีที่ได้รับอนุญาต</p>
     <div class="auth-field">
       <label for="loginEmail">อีเมล</label>
-      <input type="email" id="loginEmail" autocomplete="username" placeholder="name@edupark.co.th" required />
+      <input type="email" id="loginEmail" autocomplete="username" placeholder="name@example.com" required />
     </div>
     <div class="auth-field">
       <label for="loginPassword">รหัสผ่าน</label>
