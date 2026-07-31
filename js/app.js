@@ -140,6 +140,14 @@ async function loadTickets() {
 
   if (error) return loadError(body, 8, error);
 
+  const badge = document.getElementById("ticketsNavBadge");
+  if (badge) badge.textContent = data.length;
+
+  if (data.length === 0) {
+    body.innerHTML = `<tr><td colspan="8" class="empty-note">ยังไม่มีข้อมูล Ticket</td></tr>`;
+    return;
+  }
+
   body.innerHTML = data.map(t => `
     <tr>
       <td class="cell-main">#${t.ticket_number}</td>
@@ -162,6 +170,11 @@ async function loadAssets() {
   const body = document.getElementById("assetsTableBody");
   const { data, error } = await supabaseClient.from("assets").select("*").order("asset_tag");
   if (error) return loadError(body, 6, error);
+
+  if (data.length === 0) {
+    body.innerHTML = `<tr><td colspan="6" class="empty-note">ยังไม่มีข้อมูลอุปกรณ์</td></tr>`;
+    return;
+  }
 
   body.innerHTML = data.map(a => `
     <tr>
@@ -188,6 +201,14 @@ async function loadWebsites() {
     .order("name");
   if (error) return loadError(body, 8, error);
 
+  const badge = document.getElementById("websitesNavBadge");
+  if (badge) badge.textContent = data.length;
+
+  if (data.length === 0) {
+    body.innerHTML = `<tr><td colspan="8" class="empty-note">ยังไม่มีข้อมูลเว็บไซต์</td></tr>`;
+    return;
+  }
+
   body.innerHTML = data.map(w => `
     <tr>
       <td><div class="cell-main">${w.name}</div><div class="cell-sub">${w.url}</div></td>
@@ -212,6 +233,11 @@ async function loadBackupJobs() {
   const { data, error } = await supabaseClient.from("backup_jobs").select("*").order("started_at", { ascending: false });
   if (error) return loadError(body, 6, error);
 
+  if (data.length === 0) {
+    body.innerHTML = `<tr><td colspan="6" class="empty-note">ยังไม่มีข้อมูลงาน Backup</td></tr>`;
+    return;
+  }
+
   body.innerHTML = data.map(j => `
     <tr>
       <td class="cell-main">${j.job_name}</td>
@@ -233,20 +259,15 @@ async function loadBackupJobs() {
 // acceptable for real server/FTP/admin passwords. Ask when ready to build
 // that piece.
 
-const credentials = [
-  { name: "Production Web Server", type: "Server (SSH)", tone: "badge-blue", host: "192.168.10.15 : 22", username: "root", password: "Sv9!qLm2#kR8", owner: "Nattanon K.", updated: "2 วันก่อน", stale: false },
-  { name: "tedet.or.th — FTP", type: "FTP", tone: "badge-purple", host: "ftp.tedet.or.th : 21", username: "tedet_ftp", password: "Ftp$2026Tedet!", owner: "ธีรพงษ์ ใจดี", updated: "1 สัปดาห์ก่อน", stale: false },
-  { name: "WordPress Admin — tedet.or.th", type: "Web Admin", tone: "badge-green", host: "tedet.or.th/wp-admin", username: "admin_tedet", password: "Wp@dmin_2026!", owner: "Nattanon K.", updated: "3 วันก่อน", stale: false },
-  { name: "cPanel Hosting", type: "Web Admin", tone: "badge-green", host: "cpanel.hostpro.co.th : 2083", username: "tedetadmin", password: "cP@n3lSecure9", owner: "วรวุฒิ เพชรดี", updated: "2 สัปดาห์ก่อน", stale: false },
-  { name: "MySQL — ERP Database", type: "Database", tone: "badge-amber", host: "10.0.4.20 : 3306", username: "erp_dbadmin", password: "Erp$qlPass77", owner: "สุนิสา แก้วมณี", updated: "5 วันก่อน", stale: false },
-  { name: "Google Workspace Admin", type: "Email", tone: "badge-gray", host: "admin.google.com", username: "itadmin@tedet.or.th", password: "Gws#Admin2026", owner: "Nattanon K.", updated: "1 เดือนก่อน", stale: false },
-  { name: "Domain Registrar", type: "Domain & DNS", tone: "badge-red", host: "godaddy.com", username: "tedet_registrar", password: "Dns!OldPass21", owner: "Nattanon K.", updated: "6 เดือนก่อน", stale: true },
-  { name: "Backup NAS Admin", type: "Server (SSH)", tone: "badge-blue", host: "10.0.5.20", username: "admin", password: "N@sB4ckup#55", owner: "ธีรพงษ์ ใจดี", updated: "4 วันก่อน", stale: false },
-];
+const credentials = [];
 
 function renderCredentials() {
   const body = document.getElementById("credentialsTableBody");
   if (!body) return;
+  if (credentials.length === 0) {
+    body.innerHTML = `<tr><td colspan="7" class="empty-note">ยังไม่มีข้อมูลบัญชี</td></tr>`;
+    return;
+  }
   body.innerHTML = credentials.map((c, i) => `
     <tr>
       <td><div class="cell-main">${c.name}</div>${c.stale ? '<div class="cell-sub" style="color:var(--warn)">ควรเปลี่ยนรหัสผ่าน</div>' : ''}</td>
@@ -310,6 +331,11 @@ async function loadStaff() {
   const { data, error } = await supabaseClient.from("staff").select("*").order("full_name");
   if (error) return loadError(body, 5, error);
 
+  if (data.length === 0) {
+    body.innerHTML = `<tr><td colspan="5" class="empty-note">ยังไม่มีข้อมูลผู้ใช้งาน</td></tr>`;
+    return;
+  }
+
   body.innerHTML = data.map(u => `
     <tr>
       <td><span class="mini-avatar">${u.initials}</span><span class="cell-main">${u.full_name}</span></td>
@@ -329,6 +355,11 @@ async function loadKb() {
   const grid = document.getElementById("kbGrid");
   const { data, error } = await supabaseClient.from("kb_articles").select("*").order("updated_at", { ascending: false });
   if (error) { grid.innerHTML = `<div class="empty-note">โหลดข้อมูลไม่สำเร็จ: ${error.message}</div>`; return; }
+
+  if (data.length === 0) {
+    grid.innerHTML = `<div class="empty-note">ยังไม่มีบทความ</div>`;
+    return;
+  }
 
   grid.innerHTML = data.map(a => `
     <div class="kb-card">

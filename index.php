@@ -53,7 +53,7 @@
       <div class="nav-item" data-view="tickets">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16v9a3 3 0 0 1-3 3H7l-3 3V5Z"/><path d="M8 9h8M8 12h5"/></svg>
         Tickets
-        <span class="nav-badge">18</span>
+        <span class="nav-badge" id="ticketsNavBadge">0</span>
       </div>
       <div class="nav-item" data-view="knowledge">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg>
@@ -70,7 +70,7 @@
       <div class="nav-item" data-view="websites">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>
         Websites
-        <span class="nav-badge">10</span>
+        <span class="nav-badge" id="websitesNavBadge">0</span>
       </div>
       <div class="nav-item" data-view="network">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="2.2"/><circle cx="5" cy="19" r="2.2"/><circle cx="19" cy="19" r="2.2"/><path d="M12 7.2V12M12 12 6.3 17M12 12l5.7 5"/></svg>
@@ -87,7 +87,7 @@
       <div class="nav-item" data-view="credentials">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7.5" cy="15.5" r="4.5"/><path d="m10.9 12.1 8.6-8.6M16 6l2.5 2.5M19 3l2 2"/></svg>
         Credentials Vault
-        <span class="nav-badge">8</span>
+        <span class="nav-badge">0</span>
       </div>
     </nav>
 
