@@ -312,6 +312,31 @@ button { font-family: inherit; }
 .security-banner svg { width: 20px; height: 20px; color: var(--warn); flex-shrink: 0; margin-top: 2px; }
 .security-banner strong { display: block; font-size: 13px; margin-bottom: 3px; }
 .security-banner span { font-size: 12.5px; color: var(--text-dim); line-height: 1.6; }
+.security-banner.tone-ok { background: var(--ok-soft); }
+.security-banner.tone-ok svg { color: var(--ok); }
+
+/* ---------- Modal ---------- */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(10, 13, 25, .55);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 100;
+  padding: 20px;
+}
+.modal-card {
+  width: 100%; max-width: 420px;
+  max-height: 90vh; overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  padding: 22px 24px 24px;
+}
+.modal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px;
+}
+.modal-head h3 { margin: 0; font-size: 16px; }
 
 /* ---------- Credential password cell ---------- */
 .cred-pass-cell { display: flex; align-items: center; gap: 6px; }
