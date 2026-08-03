@@ -173,6 +173,54 @@ create policy "authenticated read/write - credentials"     on credentials     fo
 
 alter table credentials add column if not exists owner_name text;
 
+-- ============================================================
+-- Per-credential sharing.
+--
+-- Every credential has a creator (created_by). By default only the
+-- creator can see/reveal it; add_credential's p_shared_with array grants
+-- the same access to specific other users via credential_access. Both the
+-- SELECT policy below AND reveal_credential() enforce this — the RLS
+-- policy alone would only stop bulk listing, not a direct
+-- reveal_credential(id) call with a guessed/known id, since that function
+-- is SECURITY DEFINER and bypasses RLS unless it checks access itself.
+-- ============================================================
+
+alter table credentials add column if not exists created_by uuid references auth.users(id);
+
+create table if not exists credential_access (
+  credential_id uuid not null references credentials(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  primary key (credential_id, user_id)
+);
+
+alter table credential_access enable row level security;
+
+create policy "user can see their own access rows" on credential_access
+for select using (user_id = auth.uid());
+
+drop policy if exists "authenticated read/write - credentials" on credentials;
+
+create policy "select own or shared credentials" on credentials
+for select
+using (
+  auth.role() = 'authenticated' and (
+    created_by = auth.uid()
+    or exists (select 1 from credential_access ca where ca.credential_id = credentials.id and ca.user_id = auth.uid())
+  )
+);
+
+create policy "authenticated can insert credentials" on credentials
+for insert
+with check (auth.role() = 'authenticated');
+
+create policy "owner can update credentials" on credentials
+for update
+using (created_by = auth.uid());
+
+create policy "owner can delete credentials" on credentials
+for delete
+using (created_by = auth.uid());
+
 create or replace function public.add_credential(
   p_service_name text,
   p_category text,
@@ -180,7 +228,8 @@ create or replace function public.add_credential(
   p_username text,
   p_password text,
   p_owner_name text default null,
-  p_is_stale boolean default false
+  p_is_stale boolean default false,
+  p_shared_with uuid[] default '{}'
 )
 returns uuid
 language plpgsql
@@ -189,18 +238,26 @@ set search_path = public, extensions
 as $$
 declare
   v_id uuid;
+  v_user uuid;
 begin
   if auth.role() <> 'authenticated' then
     raise exception 'Not authorized';
   end if;
 
-  insert into credentials (service_name, category, host, username, password_encrypted, owner_name, is_stale)
+  insert into credentials (service_name, category, host, username, password_encrypted, owner_name, is_stale, created_by)
   values (
     p_service_name, p_category, p_host, p_username,
     pgp_sym_encrypt(p_password, '<REPLACE_WITH_A_REAL_SECRET_PASSPHRASE>'),
-    p_owner_name, p_is_stale
+    p_owner_name, p_is_stale, auth.uid()
   )
   returning id into v_id;
+
+  foreach v_user in array p_shared_with loop
+    if v_user is not null and v_user <> auth.uid() then
+      insert into credential_access (credential_id, user_id) values (v_id, v_user)
+      on conflict do nothing;
+    end if;
+  end loop;
 
   return v_id;
 end;
@@ -214,9 +271,21 @@ set search_path = public, extensions
 as $$
 declare
   v_plain text;
+  v_created_by uuid;
 begin
   if auth.role() <> 'authenticated' then
     raise exception 'Not authorized';
+  end if;
+
+  select created_by into v_created_by from credentials where id = p_id;
+  if v_created_by is null then
+    raise exception 'Not found';
+  end if;
+
+  if v_created_by <> auth.uid() and not exists (
+    select 1 from credential_access where credential_id = p_id and user_id = auth.uid()
+  ) then
+    raise exception 'Not authorized for this credential';
   end if;
 
   select pgp_sym_decrypt(password_encrypted, '<REPLACE_WITH_A_REAL_SECRET_PASSPHRASE>')
@@ -227,7 +296,23 @@ begin
 end;
 $$;
 
-revoke all on function public.add_credential(text,text,text,text,text,text,boolean) from public;
+-- Exposes id + username (email prefix) for the "share with" picker in the
+-- UI — auth.users itself isn't reachable via the REST API.
+create or replace function public.list_app_users()
+returns table (id uuid, username text)
+language sql
+security definer
+set search_path = public, extensions
+as $$
+  select au.id, split_part(au.email, '@', 1) as username
+  from auth.users au
+  where auth.role() = 'authenticated'
+  order by split_part(au.email, '@', 1);
+$$;
+
+revoke all on function public.add_credential(text,text,text,text,text,text,boolean,uuid[]) from public;
 revoke all on function public.reveal_credential(uuid) from public;
-grant execute on function public.add_credential(text,text,text,text,text,text,boolean) to authenticated;
+revoke all on function public.list_app_users() from public;
+grant execute on function public.add_credential(text,text,text,text,text,text,boolean,uuid[]) to authenticated;
 grant execute on function public.reveal_credential(uuid) to authenticated;
+grant execute on function public.list_app_users() to authenticated;

@@ -227,6 +227,30 @@ document.addEventListener("click", (e) => {
   renderCredentials();
 });
 
+// ---------- Share-with user list ----------
+let appUsers = [];
+
+async function loadAppUsers() {
+  const { data, error } = await supabaseClient.rpc("list_app_users");
+  if (error) { console.error(error); return; }
+  appUsers = data;
+}
+
+function renderShareList() {
+  const container = document.getElementById("shareUserList");
+  const others = appUsers.filter(u => u.id !== window.currentUserId);
+  if (others.length === 0) {
+    container.innerHTML = `<div class="empty-note" style="padding:10px 0;">ไม่มีผู้ใช้งานอื่น</div>`;
+    return;
+  }
+  container.innerHTML = others.map(u => `
+    <label class="share-row">
+      <input type="checkbox" value="${u.id}" data-share-user />
+      ${u.username}
+    </label>
+  `).join("");
+}
+
 // ---------- Add credential modal ----------
 const addOverlay = document.getElementById("addCredentialOverlay");
 const addForm = document.getElementById("addCredentialForm");
@@ -236,6 +260,7 @@ const addSubmit = document.getElementById("addCredentialSubmit");
 document.getElementById("openAddCredentialBtn").addEventListener("click", () => {
   addError.style.display = "none";
   addForm.reset();
+  renderShareList();
   addOverlay.style.display = "flex";
 });
 
@@ -253,6 +278,8 @@ addForm.addEventListener("submit", async (e) => {
   addSubmit.disabled = true;
   addSubmit.textContent = "กำลังบันทึก...";
 
+  const sharedWith = Array.from(document.querySelectorAll("[data-share-user]:checked")).map(el => el.value);
+
   const { error } = await supabaseClient.rpc("add_credential", {
     p_service_name: document.getElementById("cf_service_name").value.trim(),
     p_category: document.getElementById("cf_category").value,
@@ -261,6 +288,7 @@ addForm.addEventListener("submit", async (e) => {
     p_password: document.getElementById("cf_password").value,
     p_owner_name: document.getElementById("cf_owner").value.trim() || null,
     p_is_stale: document.getElementById("cf_is_stale").checked,
+    p_shared_with: sharedWith,
   });
 
   addSubmit.disabled = false;
@@ -279,5 +307,5 @@ addForm.addEventListener("submit", async (e) => {
 // ================= Entry point (called by auth.js once signed in) =================
 
 window.initDashboard = async function initDashboard() {
-  await loadCredentials();
+  await Promise.all([loadCredentials(), loadAppUsers()]);
 };

@@ -22,6 +22,7 @@ function showApp(session) {
   authGate.style.display = "none";
   appRoot.style.display = "";
   const username = usernameFromEmail(session?.user?.email);
+  window.currentUserId = session?.user?.id || null;
   document.getElementById("userEmail").textContent = username;
   document.getElementById("userName").textContent = username;
   document.getElementById("userAvatar").textContent = username[0].toUpperCase();
