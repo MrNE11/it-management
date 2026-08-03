@@ -90,15 +90,7 @@
 
       <!-- ============ CREDENTIALS VAULT ============ -->
       <section class="view active" id="view-credentials">
-                <div class="security-banner tone-ok">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3Z"/><path d="m9.5 12 1.8 1.8L14.5 10"/></svg>
-          <div>
-            <strong>รหัสผ่านเข้ารหัสจริงก่อนบันทึกลงฐานข้อมูล</strong>
-            <span>ใช้ pgcrypto (AES) เข้ารหัสฝั่ง server เท่านั้น — passphrase ไม่เคยส่งผ่าน client และหน้านี้บังคับ login (RLS + JWT) ก่อนเข้าถึงหรือถอดรหัสได้เสมอ</span>
-          </div>
-        </div>
-
-        <div class="grid grid-4" style="margin-bottom:16px;">
+                <div class="grid grid-4" style="margin-bottom:16px;">
           <div class="card kpi">
             <div class="kpi-icon tone-purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7.5" cy="15.5" r="4.5"/><path d="m10.9 12.1 8.6-8.6M16 6l2.5 2.5M19 3l2 2"/></svg></div>
             <div class="kpi-value" id="kpiTotal">0</div><div class="kpi-label">บัญชีที่จัดเก็บทั้งหมด</div>
