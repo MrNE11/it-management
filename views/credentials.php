@@ -41,7 +41,7 @@
           </div>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>บริการ</th><th>ประเภท</th><th>Host / URL</th><th>Username</th><th>Password</th><th>ผู้ดูแล</th><th>อัปเดตล่าสุด</th></tr></thead>
+              <thead><tr><th>บริการ</th><th>ประเภท</th><th>Host</th><th>ลิงก์</th><th>Username</th><th>Password</th><th>ผู้ดูแล</th><th>อัปเดตล่าสุด</th></tr></thead>
               <tbody id="credentialsTableBody"></tbody>
             </table>
           </div>
@@ -75,8 +75,13 @@
             </div>
 
             <div class="auth-field">
-              <label for="cf_host">Host / URL</label>
+              <label for="cf_host">Host</label>
               <input type="text" id="cf_host" placeholder="เช่น 192.168.10.15 : 22" />
+            </div>
+
+            <div class="auth-field">
+              <label for="cf_url">ลิงก์ (ไม่บังคับ)</label>
+              <input type="url" id="cf_url" placeholder="เช่น https://tedet.or.th/wp-admin" />
             </div>
 
             <div class="auth-field">

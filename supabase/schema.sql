@@ -221,6 +221,8 @@ create policy "owner can delete credentials" on credentials
 for delete
 using (created_by = auth.uid());
 
+alter table credentials add column if not exists url text;
+
 create or replace function public.add_credential(
   p_service_name text,
   p_category text,
@@ -229,7 +231,8 @@ create or replace function public.add_credential(
   p_password text,
   p_owner_name text default null,
   p_is_stale boolean default false,
-  p_shared_with uuid[] default '{}'
+  p_shared_with uuid[] default '{}',
+  p_url text default null
 )
 returns uuid
 language plpgsql
@@ -244,11 +247,11 @@ begin
     raise exception 'Not authorized';
   end if;
 
-  insert into credentials (service_name, category, host, username, password_encrypted, owner_name, is_stale, created_by)
+  insert into credentials (service_name, category, host, username, password_encrypted, owner_name, is_stale, created_by, url)
   values (
     p_service_name, p_category, p_host, p_username,
     pgp_sym_encrypt(p_password, '<REPLACE_WITH_A_REAL_SECRET_PASSPHRASE>'),
-    p_owner_name, p_is_stale, auth.uid()
+    p_owner_name, p_is_stale, auth.uid(), p_url
   )
   returning id into v_id;
 
@@ -310,9 +313,9 @@ as $$
   order by split_part(au.email, '@', 1);
 $$;
 
-revoke all on function public.add_credential(text,text,text,text,text,text,boolean,uuid[]) from public;
+revoke all on function public.add_credential(text,text,text,text,text,text,boolean,uuid[],text) from public;
 revoke all on function public.reveal_credential(uuid) from public;
 revoke all on function public.list_app_users() from public;
-grant execute on function public.add_credential(text,text,text,text,text,text,boolean,uuid[]) to authenticated;
+grant execute on function public.add_credential(text,text,text,text,text,text,boolean,uuid[],text) to authenticated;
 grant execute on function public.reveal_credential(uuid) to authenticated;
 grant execute on function public.list_app_users() to authenticated;

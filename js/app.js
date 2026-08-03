@@ -111,10 +111,10 @@ async function loadCredentials() {
   const body = document.getElementById("credentialsTableBody");
   const { data, error } = await supabaseClient
     .from("credentials")
-    .select("id, service_name, category, host, username, owner_name, is_stale, updated_at")
+    .select("id, service_name, category, host, url, username, owner_name, is_stale, updated_at")
     .order("updated_at", { ascending: false });
 
-  if (error) return loadError(body, 7, error);
+  if (error) return loadError(body, 8, error);
 
   allCredentials = data;
   updateCredentialKpis();
@@ -141,7 +141,7 @@ function renderCredentials() {
   const rows = activeCategory ? allCredentials.filter(c => c.category === activeCategory) : allCredentials;
 
   if (rows.length === 0) {
-    body.innerHTML = `<tr><td colspan="7" class="empty-note">ยังไม่มีข้อมูลบัญชี</td></tr>`;
+    body.innerHTML = `<tr><td colspan="8" class="empty-note">ยังไม่มีข้อมูลบัญชี</td></tr>`;
     return;
   }
 
@@ -152,6 +152,7 @@ function renderCredentials() {
       <td><div class="cell-main">${c.service_name}</div>${c.is_stale ? '<div class="cell-sub" style="color:var(--warn)">ควรเปลี่ยนรหัสผ่าน</div>' : ''}</td>
       <td><span class="badge ${categoryTone[c.category] || "badge-gray"}">${c.category}</span></td>
       <td>${c.host || "—"}</td>
+      <td>${c.url ? `<a href="${c.url}" target="_blank" rel="noopener noreferrer">เปิดลิงก์</a>` : "—"}</td>
       <td>${c.username || "—"}</td>
       <td>
         <div class="cred-pass-cell">
@@ -289,6 +290,7 @@ addForm.addEventListener("submit", async (e) => {
     p_owner_name: document.getElementById("cf_owner").value.trim() || null,
     p_is_stale: document.getElementById("cf_is_stale").checked,
     p_shared_with: sharedWith,
+    p_url: document.getElementById("cf_url").value.trim() || null,
   });
 
   addSubmit.disabled = false;
