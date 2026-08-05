@@ -73,7 +73,7 @@
       </div>
       <div class="search-box">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-        <input type="text" placeholder="ค้นหาบัญชี..." />
+        <input type="text" id="credentialSearch" placeholder="ค้นหาบัญชี..." />
       </div>
       <div class="topbar-actions">
         <button class="icon-btn" title="Notifications">
@@ -125,7 +125,7 @@
           </div>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>บริการ</th><th>ประเภท</th><th>Host</th><th>ลิงก์</th><th>Username</th><th>Password</th><th>ผู้ดูแล</th><th>อัปเดตล่าสุด</th></tr></thead>
+              <thead><tr><th id="sortByName" style="cursor:pointer;user-select:none;">บริการ <span id="sortByNameIcon"></span></th><th>ประเภท</th><th>Host</th><th>ลิงก์</th><th>Username</th><th>Password</th><th>ผู้ดูแล</th><th>อัปเดตล่าสุด</th><th></th></tr></thead>
               <tbody id="credentialsTableBody"></tbody>
             </table>
           </div>
@@ -135,7 +135,7 @@
         <div class="modal-overlay" id="addCredentialOverlay" style="display:none;">
           <form class="modal-card" id="addCredentialForm">
             <div class="modal-head">
-              <h3>เพิ่มข้อมูลบัญชี</h3>
+              <h3 id="addModalTitle">เพิ่มข้อมูลบัญชี</h3>
               <button type="button" class="icon-btn" id="closeAddCredentialBtn">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
               </button>
@@ -200,6 +200,26 @@
             <button type="submit" class="btn btn-primary" id="addCredentialSubmit" style="width:100%;justify-content:center;">บันทึกข้อมูล</button>
           </form>
         </div>
+
+        <!-- ============ CONFIRM MODAL ============ -->
+        <div class="modal-overlay" id="confirmOverlay" style="display:none;">
+          <div class="modal-card" style="max-width:340px;">
+            <div class="modal-head">
+              <h3>ยืนยันการลบ</h3>
+              <button type="button" class="icon-btn" id="confirmCancelX">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+              </button>
+            </div>
+            <p id="confirmMessage" style="font-size:13.5px;color:var(--text-dim);margin:0 0 18px;"></p>
+            <div style="display:flex;gap:10px;">
+              <button type="button" class="btn btn-outline" id="confirmCancelBtn" style="flex:1;justify-content:center;">ยกเลิก</button>
+              <button type="button" class="btn btn-primary" id="confirmOkBtn" style="flex:1;justify-content:center;background:var(--danger);">ลบ</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ TOAST ============ -->
+        <div id="toast" class="toast" style="display:none;"></div>
       </section>
 
     </main>

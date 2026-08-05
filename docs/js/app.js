@@ -105,6 +105,8 @@ const categoryTone = {
 
 let allCredentials = [];
 let activeCategory = "";
+let searchQuery = "";
+let sortAsc = true;
 const revealedPasswords = new Map(); // id -> plaintext, cleared on reload
 
 async function loadCredentials() {
@@ -114,7 +116,7 @@ async function loadCredentials() {
     .select("id, service_name, category, host, url, username, owner_name, is_stale, updated_at")
     .order("updated_at", { ascending: false });
 
-  if (error) return loadError(body, 8, error);
+  if (error) return loadError(body, 9, error);
 
   allCredentials = data;
   updateCredentialKpis();
@@ -138,10 +140,29 @@ function renderCredentials() {
   const body = document.getElementById("credentialsTableBody");
   if (!body) return;
 
-  const rows = activeCategory ? allCredentials.filter(c => c.category === activeCategory) : allCredentials;
+  let rows = activeCategory ? allCredentials.filter(c => c.category === activeCategory) : allCredentials;
+
+  if (searchQuery) {
+    const q = searchQuery.toLowerCase();
+    rows = rows.filter(c =>
+      (c.service_name || "").toLowerCase().includes(q) ||
+      (c.host || "").toLowerCase().includes(q) ||
+      (c.username || "").toLowerCase().includes(q) ||
+      (c.owner_name || "").toLowerCase().includes(q)
+    );
+  }
+
+  rows = [...rows].sort((a, b) =>
+    sortAsc
+      ? a.service_name.localeCompare(b.service_name, "th")
+      : b.service_name.localeCompare(a.service_name, "th")
+  );
+
+  const sortIcon = document.getElementById("sortByNameIcon");
+  if (sortIcon) sortIcon.textContent = sortAsc ? "▲" : "▼";
 
   if (rows.length === 0) {
-    body.innerHTML = `<tr><td colspan="8" class="empty-note">ยังไม่มีข้อมูลบัญชี</td></tr>`;
+    body.innerHTML = `<tr><td colspan="9" class="empty-note">ไม่พบข้อมูลบัญชี</td></tr>`;
     return;
   }
 
@@ -163,15 +184,33 @@ function renderCredentials() {
       </td>
       <td>${c.owner_name || "—"}</td>
       <td>${relativeThai(c.updated_at)}</td>
+      <td>
+        <div style="display:flex;gap:6px;">
+          <button class="icon-btn-sm" data-edit-cred data-id="${c.id}" title="แก้ไข">${editIcon}</button>
+          <button class="icon-btn-sm" data-delete-cred data-id="${c.id}" title="ลบ">${trashIcon}</button>
+        </div>
+      </td>
     </tr>
   `;
   }).join("");
 }
 
+document.getElementById("credentialSearch").addEventListener("input", (e) => {
+  searchQuery = e.target.value.trim();
+  renderCredentials();
+});
+
+document.getElementById("sortByName").addEventListener("click", () => {
+  sortAsc = !sortAsc;
+  renderCredentials();
+});
+
 const eyeOffIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.9 17.9A10.4 10.4 0 0 1 12 19c-6.5 0-10-7-10-7a18.6 18.6 0 0 1 4.2-5.2M9.9 4.2A9.9 9.9 0 0 1 12 4c6.5 0 10 7 10 7a18.5 18.5 0 0 1-2.2 3.2"/><path d="M14.1 14.1a3 3 0 1 1-4.2-4.2"/><path d="M2 2l20 20"/></svg>`;
 const eyeIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>`;
 const copyIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
 const checkIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6 9 17l-5-5"/></svg>`;
+const editIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>`;
+const trashIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>`;
 
 async function revealPassword(id) {
   if (revealedPasswords.has(id)) return revealedPasswords.get(id);
@@ -237,7 +276,7 @@ async function loadAppUsers() {
   appUsers = data;
 }
 
-function renderShareList() {
+function renderShareList(checkedIds = new Set()) {
   const container = document.getElementById("shareUserList");
   const others = appUsers.filter(u => u.id !== window.currentUserId);
   if (others.length === 0) {
@@ -246,21 +285,120 @@ function renderShareList() {
   }
   container.innerHTML = others.map(u => `
     <label class="share-row">
-      <input type="checkbox" value="${u.id}" data-share-user />
+      <input type="checkbox" value="${u.id}" data-share-user ${checkedIds.has(u.id) ? "checked" : ""} />
       ${u.username}
     </label>
   `).join("");
 }
 
-// ---------- Add credential modal ----------
+// ---------- Toast ----------
+let toastTimer = null;
+function showToast(message, isError = false) {
+  const toast = document.getElementById("toast");
+  clearTimeout(toastTimer);
+  toast.textContent = message;
+  toast.className = "toast" + (isError ? " toast-error" : "");
+  toast.style.display = "block";
+  toastTimer = setTimeout(() => { toast.style.display = "none"; }, 3000);
+}
+
+// ---------- Confirm modal (native confirm()/alert() are unreliable —
+// some embedded/automated browser contexts suppress them entirely and
+// silently return false, which would make delete permanently no-op) ----------
+const confirmOverlay = document.getElementById("confirmOverlay");
+const confirmMessage = document.getElementById("confirmMessage");
+const confirmOkBtn = document.getElementById("confirmOkBtn");
+const confirmCancelBtn = document.getElementById("confirmCancelBtn");
+const confirmCancelX = document.getElementById("confirmCancelX");
+let confirmResolve = null;
+
+function showConfirm(message) {
+  confirmMessage.textContent = message;
+  confirmOverlay.style.display = "flex";
+  return new Promise((resolve) => { confirmResolve = resolve; });
+}
+
+function closeConfirm(result) {
+  confirmOverlay.style.display = "none";
+  if (confirmResolve) { confirmResolve(result); confirmResolve = null; }
+}
+
+confirmOkBtn.addEventListener("click", () => closeConfirm(true));
+confirmCancelBtn.addEventListener("click", () => closeConfirm(false));
+confirmCancelX.addEventListener("click", () => closeConfirm(false));
+confirmOverlay.addEventListener("click", (e) => { if (e.target === confirmOverlay) closeConfirm(false); });
+
+// ---------- Edit / Delete ----------
+let editingId = null;
+
+async function openEditModal(id) {
+  const cred = allCredentials.find(c => c.id === id);
+  if (!cred) return;
+  editingId = id;
+  addError.style.display = "none";
+  document.getElementById("addModalTitle").textContent = "แก้ไขข้อมูลบัญชี";
+  addSubmit.textContent = "บันทึกการแก้ไข";
+
+  document.getElementById("cf_service_name").value = cred.service_name || "";
+  document.getElementById("cf_category").value = cred.category;
+  document.getElementById("cf_host").value = cred.host || "";
+  document.getElementById("cf_url").value = cred.url || "";
+  document.getElementById("cf_username").value = cred.username || "";
+  const pwField = document.getElementById("cf_password");
+  pwField.value = "";
+  pwField.required = false;
+  pwField.placeholder = "เว้นว่างไว้เพื่อไม่เปลี่ยนรหัสผ่าน";
+  document.getElementById("cf_owner").value = cred.owner_name || "";
+  document.getElementById("cf_is_stale").checked = cred.is_stale;
+
+  const { data: shares } = await supabaseClient.from("credential_access").select("user_id").eq("credential_id", id);
+  renderShareList(new Set((shares || []).map(s => s.user_id)));
+
+  addOverlay.style.display = "flex";
+}
+
+document.addEventListener("click", async (e) => {
+  const editBtn = e.target.closest("[data-edit-cred]");
+  const deleteBtn = e.target.closest("[data-delete-cred]");
+
+  if (editBtn) {
+    openEditModal(editBtn.dataset.id);
+  }
+
+  if (deleteBtn) {
+    const id = deleteBtn.dataset.id;
+    const cred = allCredentials.find(c => c.id === id);
+    const ok = await showConfirm(`ลบ "${cred?.service_name || "รายการนี้"}" ใช่ไหม? การลบนี้ย้อนกลับไม่ได้`);
+    if (!ok) return;
+
+    deleteBtn.disabled = true;
+    const { error } = await supabaseClient.from("credentials").delete().eq("id", id);
+    if (error) {
+      showToast("ลบไม่สำเร็จ: " + error.message, true);
+      deleteBtn.disabled = false;
+      return;
+    }
+    revealedPasswords.delete(id);
+    showToast("ลบข้อมูลแล้ว");
+    await loadCredentials();
+  }
+});
+
+// ---------- Add / Edit credential modal ----------
 const addOverlay = document.getElementById("addCredentialOverlay");
 const addForm = document.getElementById("addCredentialForm");
 const addError = document.getElementById("addCredentialError");
 const addSubmit = document.getElementById("addCredentialSubmit");
 
 document.getElementById("openAddCredentialBtn").addEventListener("click", () => {
+  editingId = null;
   addError.style.display = "none";
   addForm.reset();
+  document.getElementById("addModalTitle").textContent = "เพิ่มข้อมูลบัญชี";
+  addSubmit.textContent = "บันทึกข้อมูล";
+  const pwField = document.getElementById("cf_password");
+  pwField.required = true;
+  pwField.placeholder = "";
   renderShareList();
   addOverlay.style.display = "flex";
 });
@@ -280,8 +418,7 @@ addForm.addEventListener("submit", async (e) => {
   addSubmit.textContent = "กำลังบันทึก...";
 
   const sharedWith = Array.from(document.querySelectorAll("[data-share-user]:checked")).map(el => el.value);
-
-  const { error } = await supabaseClient.rpc("add_credential", {
+  const fields = {
     p_service_name: document.getElementById("cf_service_name").value.trim(),
     p_category: document.getElementById("cf_category").value,
     p_host: document.getElementById("cf_host").value.trim() || null,
@@ -291,10 +428,14 @@ addForm.addEventListener("submit", async (e) => {
     p_is_stale: document.getElementById("cf_is_stale").checked,
     p_shared_with: sharedWith,
     p_url: document.getElementById("cf_url").value.trim() || null,
-  });
+  };
+
+  const { error } = editingId
+    ? await supabaseClient.rpc("update_credential", { p_id: editingId, ...fields })
+    : await supabaseClient.rpc("add_credential", fields);
 
   addSubmit.disabled = false;
-  addSubmit.textContent = "บันทึกข้อมูล";
+  addSubmit.textContent = editingId ? "บันทึกการแก้ไข" : "บันทึกข้อมูล";
 
   if (error) {
     addError.textContent = "บันทึกไม่สำเร็จ: " + error.message;
@@ -302,6 +443,8 @@ addForm.addEventListener("submit", async (e) => {
     return;
   }
 
+  if (editingId) revealedPasswords.delete(editingId);
+  editingId = null;
   addOverlay.style.display = "none";
   await loadCredentials();
 });

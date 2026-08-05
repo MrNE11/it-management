@@ -73,7 +73,7 @@
       </div>
       <div class="search-box">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-        <input type="text" placeholder="ค้นหาบัญชี..." />
+        <input type="text" id="credentialSearch" placeholder="ค้นหาบัญชี..." />
       </div>
       <div class="topbar-actions">
         <button class="icon-btn" title="Notifications">

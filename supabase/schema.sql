@@ -319,3 +319,89 @@ revoke all on function public.list_app_users() from public;
 grant execute on function public.add_credential(text,text,text,text,text,text,boolean,uuid[],text) to authenticated;
 grant execute on function public.reveal_credential(uuid) to authenticated;
 grant execute on function public.list_app_users() to authenticated;
+
+-- ============================================================
+-- Edit / delete. Delete relies directly on the existing "owner can
+-- delete credentials" RLS policy (no RPC needed — DELETE FROM
+-- credentials via the client works as-is for the creator). Edit needs
+-- an RPC because changing the password requires re-encryption.
+-- ============================================================
+
+create or replace function public.update_credential(
+  p_id uuid,
+  p_service_name text,
+  p_category text,
+  p_host text,
+  p_username text,
+  p_password text default null,
+  p_owner_name text default null,
+  p_is_stale boolean default false,
+  p_shared_with uuid[] default '{}',
+  p_url text default null
+)
+returns void
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+begin
+  if auth.role() <> 'authenticated' then
+    raise exception 'Not authorized';
+  end if;
+
+  if not exists (select 1 from credentials where id = p_id and created_by = auth.uid()) then
+    raise exception 'Not authorized';
+  end if;
+
+  update credentials set
+    service_name = p_service_name,
+    category = p_category,
+    host = p_host,
+    url = p_url,
+    username = p_username,
+    owner_name = p_owner_name,
+    is_stale = p_is_stale,
+    updated_at = now(),
+    password_encrypted = case when p_password is not null and p_password <> ''
+      then pgp_sym_encrypt(p_password, '<REPLACE_WITH_A_REAL_SECRET_PASSPHRASE>')
+      else password_encrypted
+    end
+  where id = p_id;
+
+  delete from credential_access where credential_id = p_id;
+
+  insert into credential_access (credential_id, user_id)
+  select p_id, u from unnest(p_shared_with) as u
+  where u is not null and u <> auth.uid()
+  on conflict do nothing;
+end;
+$$;
+
+revoke all on function public.update_credential(uuid,text,text,text,text,text,text,boolean,uuid[],text) from public;
+grant execute on function public.update_credential(uuid,text,text,text,text,text,text,boolean,uuid[],text) to authenticated;
+
+-- Lets an owner see who they've shared a credential with (for prefilling
+-- the edit form's checkboxes). Goes through a SECURITY DEFINER helper
+-- rather than a direct EXISTS subquery on `credentials` — the direct
+-- form causes "infinite recursion detected in policy" because the
+-- `credentials` SELECT policy itself references credential_access,
+-- and Postgres's RLS planner can't unfold two policies that both
+-- reference each other. The helper function runs as its owner (bypasses
+-- RLS on the tables it touches internally), which breaks the cycle.
+create or replace function public.owns_credential(p_credential_id uuid)
+returns boolean
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select exists (
+    select 1 from credentials where id = p_credential_id and created_by = auth.uid()
+  );
+$$;
+
+revoke all on function public.owns_credential(uuid) from public;
+grant execute on function public.owns_credential(uuid) to authenticated;
+
+create policy "owner can see share list for their credentials" on credential_access
+for select using (public.owns_credential(credential_id));
